@@ -164,11 +164,12 @@ module ActiveRecord #:nodoc:
         # don't allow multiple calls
         return if self.included_modules.include?(ActiveRecord::Acts::Versioned::Behaviors)
 
-        cattr_accessor :versioned_class_name, :versioned_foreign_key, :versioned_table_name, :versioned_inheritance_column,
+        cattr_accessor :versioned_class_name, :base_class_name, :versioned_foreign_key, :versioned_table_name, :versioned_inheritance_column,
                        :version_column, :max_version_limit, :track_altered_attributes, :version_condition, :version_sequence_name, :non_versioned_columns,
                        :version_association_options, :version_if_changed
 
         self.versioned_class_name         = options[:class_name] || "Version"
+        self.base_class_name              = options[:base_class_name] || 'ActiveRecord::Base'
         self.versioned_foreign_key        = options[:foreign_key] || self.to_s.foreign_key
         self.versioned_table_name         = options[:table_name] || "#{table_name_prefix}#{base_class.name.demodulize.underscore}_versions#{table_name_suffix}"
         self.versioned_inheritance_column = options[:inheritance_column] || "versioned_#{inheritance_column}"
@@ -205,9 +206,15 @@ module ActiveRecord #:nodoc:
         #
         # Create the dynamic versioned model
         #
-        const_set(versioned_class_name, Class.new(ActiveRecord::Base)).class_eval do
-          def self.reloadable?;
-            false;
+        def class_from_string(str)
+          str.split('::').inject(Object) do |mod, class_name|
+            mod.const_get(class_name)
+          end
+        end
+        
+        const_set(versioned_class_name, Class.new(class_from_string(base_class_name))).class_eval do
+          def self.reloadable?
+            false
           end
 
           # find first version before the given version

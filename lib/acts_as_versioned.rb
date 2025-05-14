@@ -268,7 +268,7 @@ module ActiveRecord #:nodoc:
         extend ActiveSupport::Concern
 
         included do
-          has_many :versions, self.version_association_options
+          has_many :versions, **self.version_association_options
 
           before_save :set_new_version
           after_save :save_version
@@ -428,7 +428,7 @@ module ActiveRecord #:nodoc:
 
             return if connection.table_exists?(versioned_table_name)
 
-            self.connection.create_table(versioned_table_name, create_table_options) do |t|
+            self.connection.create_table(versioned_table_name, **create_table_options) do |t|
               t.column versioned_foreign_key, :integer
               t.column version_column, :integer
             end
